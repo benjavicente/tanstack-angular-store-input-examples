@@ -26,10 +26,8 @@ export function createStableSignal<T>(fn: () => T): () => T {
 }
 
 /**
- * Injects a store that will be initialized lazily after component initialization.
- * This is required when accepting signal inputs at the construction of the store.
- * Prefer using `injectStore` when the store isn't constructed from signals,
- * and use createStableSignal to store the object that contains the store.
+ * Subscribes to a store passed as a signal. If the signal changes, this will subscribe to the new store.
+ * It works similarly to the React implementation instead of the Solid/Vue/Svelte one.
  * 
  * @param storeSignal - A signal that will be used to initialize the store. The signal should not update.
  * @param selector - A selector function that will be used to select the state from the store.
@@ -61,9 +59,7 @@ export function injectLazyStore<
     const slice = linkedSignal(() => selector(storeSignal().get()), options)
 
     effect((onCleanup) => {
-      const currentStore = storeSignal()
-      slice.set(selector(currentStore.get()))
-      const { unsubscribe } = currentStore.subscribe((s) => {
+      const { unsubscribe } = storeSignal().subscribe((s) => {
         slice.set(selector(s))
       })
       onCleanup(() => unsubscribe())

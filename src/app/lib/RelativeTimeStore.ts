@@ -29,7 +29,7 @@ export class RelativeTime {
   private formatRelativeTime(now = Date.now()) {
     if (typeof this.timestamp !== 'number') {
       console.error("'Expensive' formatRelativeTime called with invalid value!");
-      return "invalid"
+      return null as unknown as string;
     }
 
     const diffInSeconds = Math.floor((now - this.timestamp) / 1000);

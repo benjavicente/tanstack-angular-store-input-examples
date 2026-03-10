@@ -27,17 +27,14 @@ export function createStableSignal<T>(fn: () => T): () => T {
 }
 
 /**
- * Injects a store that will be initialized lazily after component initialization.
- * This is required when accepting signal inputs at the construction of the store.
- * Prefer using `injectStore` when the store isn't constructed from signals,
- * and use createStableSignal to store the object that contains the store.
+ * Injects a store or a signal that contains a store.
  * 
- * @param storeSignal - A signal that will be used to initialize the store. The signal should not update.
+ * @param storeOrStoreSignal - A store or a stable signal that contains a store.
  * @param selector - A selector function that will be used to select the state from the store.
  * @param options - Options for the signal.
  */
 export function injectLazyStore<TState, TSelected = NoInfer<TState>>(
-  storeSignal: Atom<TState> | ReadonlyAtom<TState> | (() => Atom<TState> | ReadonlyAtom<TState>),
+  storeOrStoreSignal: Atom<TState> | ReadonlyAtom<TState> | (() => Atom<TState> | ReadonlyAtom<TState>),
   selector?: (state: NoInfer<TState>) => TSelected,
   options?: CreateSignalOptions<TSelected> & { injector?: Injector },
 ): Signal<TSelected>
@@ -63,9 +60,7 @@ export function injectLazyStore<
       const slice = linkedSignal(() => selector(storeOrStoreSignal().get()), options)
 
       effect((onCleanup) => {
-        const currentStore = storeOrStoreSignal()
-        slice.set(selector(currentStore.get()))
-        const { unsubscribe } = currentStore.subscribe((s) => {
+        const { unsubscribe } = storeOrStoreSignal().subscribe((s) => {
           slice.set(selector(s))
         })
         onCleanup(() => unsubscribe())
@@ -76,8 +71,6 @@ export function injectLazyStore<
       const destroyRef = inject(DestroyRef)
       const slice = linkedSignal(() => selector(storeOrStoreSignal.get()), options)
       // Subscribe immediately, so any effect will have the value immediately.
-      // If we don't do this (and subscribe inside an effect),
-      // the sanity check of the not-great-effects page will fail
       const { unsubscribe } = storeOrStoreSignal.subscribe((s) => {
         slice.set(selector(s))
       })

@@ -15,9 +15,11 @@ import { RelativeTime } from "@app/lib/RelativeTimeStore";
 
 export function injectRelativeTimestamp(timestamp: Signal<number>) {
   // Create and set state
-  // @ts-expect-error - Problem in this aproach:
+  // @ts-expect-error - Problem in this approach:
   // The store wants to start with an initial value (like with all adapters),
   // but we can't call timestamp here since it's an input signal.
+  // This breaks some assumptions, for example, in Query, query observers are expected
+  // to have the query client provided by the dependency injection of the framework.
   const relativeTimestamp = new RelativeTime();
 
   // Attach to the specific store lifecycle
@@ -50,9 +52,10 @@ export class NotGreatEffectsChildComponent {
   public readonly timestamp = model.required<number>();
 
   protected readonly before = effect(() => {
-    if (this.relative() === null) {
-      // Sanity check, it might break if the store is subscribed in an effect
-      window.alert("before is null!");
+    if (typeof this.relative() !== 'string') {
+      // Since this effect is called before the effect that sets
+      // the initial value to the store runs, we get an invalid state.
+      window.alert("relative is in an invalid state!");
     }
   });
 
@@ -74,7 +77,7 @@ export class NotGreatEffectsChildComponent {
       But effects are a syncing mechanism! At some moment, the store runs with
       an invalid value, and since the ordering of the effects matters, if we
       define an effect before the store is created, we will see that the state
-      is not yet initialized.
+      is not yet initialized when we first read it.
     </p>
   `,
 })
