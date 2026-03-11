@@ -1,3 +1,4 @@
+import { JsonPipe } from "@angular/common";
 import {
   Component,
   Signal,
@@ -6,6 +7,7 @@ import {
   inject,
   effect,
   model,
+  OnInit,
 } from "@angular/core";
 import { TimeInputComponent } from "@app/components/time-input.component";
 import { injectStore } from "@app/lib/injectStore";
@@ -35,7 +37,7 @@ export function injectRelativeTimestamp(timestamp: Signal<number>) {
 @Component({
   selector: "app-not-great-effects-child",
   standalone: true,
-  imports: [TimeInputComponent],
+  imports: [TimeInputComponent, JsonPipe],
   template: `
     <div class="flex flex-row gap-2 items-center">
       <app-time-input [(timestamp)]="timestamp" />
@@ -45,21 +47,33 @@ export function injectRelativeTimestamp(timestamp: Signal<number>) {
       <div>
         {{ relative() }}
       </div>
+      <div>ngOnInit relative: {{ relativeNgOnInit | json }}</div>
     </div>
   `,
 })
-export class NotGreatEffectsChildComponent {
+export class NotGreatEffectsChildComponent implements OnInit {
   public readonly timestamp = model.required<number>();
 
   protected readonly before = effect(() => {
     if (typeof this.relative() !== 'string') {
       // Since this effect is called before the effect that sets
       // the initial value to the store runs, we get an invalid state.
-      window.alert("relative is in an invalid state!");
+      console.error("relative is in an invalid state!");
     }
   });
 
   protected readonly relative = injectRelativeTimestamp(this.timestamp);
+
+  protected relativeNgOnInit!: string;
+
+  ngOnInit() {
+    console.log("timestamp input on ngOnInit", this.timestamp());
+    console.log(
+      "relative, calculated from timestamp, on ngOnInit",
+      this.relative(),
+    );
+    this.relativeNgOnInit = this.relative();
+  }
 }
 
 @Component({
@@ -77,7 +91,8 @@ export class NotGreatEffectsChildComponent {
       But effects are a syncing mechanism! At some moment, the store runs with
       an invalid value, and since the ordering of the effects matters, if we
       define an effect before the store is created, we will see that the state
-      is not yet initialized when we first read it.
+      is not yet initialized when we first read it. Also, since ngOnInit runs before, 
+      it does not have the store initialized yet.
     </p>
   `,
 })

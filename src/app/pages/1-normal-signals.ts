@@ -1,3 +1,4 @@
+import { JsonPipe } from "@angular/common";
 import {
   Component,
   Signal,
@@ -5,6 +6,7 @@ import {
   DestroyRef,
   inject,
   effect,
+  OnInit,
 } from "@angular/core";
 import { TimeInputComponent } from "@app/components/time-input.component";
 import { injectStore } from "@app/lib/injectStore";
@@ -25,7 +27,7 @@ export function injectRelativeTimestamp(timestamp: Signal<number>) {
 
 @Component({
   standalone: true,
-  imports: [TimeInputComponent],
+  imports: [TimeInputComponent, JsonPipe],
   template: `
     @defer (on immediate) {
       <div class="flex flex-row gap-2 items-center">
@@ -36,6 +38,7 @@ export function injectRelativeTimestamp(timestamp: Signal<number>) {
         <div>
           {{ relative() }}
         </div>
+        <div>ngOnInit relative: {{ relativeNgOnInit | json }}</div>
       </div>
     }
     <p class="mt-4">
@@ -44,7 +47,17 @@ export function injectRelativeTimestamp(timestamp: Signal<number>) {
     </p>
   `,
 })
-export class NormalSignalsPage {
+export class NormalSignalsPage implements OnInit {
   protected readonly timestamp = signal(Date.now());
   protected readonly relative = injectRelativeTimestamp(this.timestamp);
+  protected relativeNgOnInit!: string;
+
+  ngOnInit() {
+    console.log("timestamp input on ngOnInit", this.timestamp());
+    console.log(
+      "relative, calculated from timestamp, on ngOnInit",
+      this.relative(),
+    );
+    this.relativeNgOnInit = this.relative();
+  }
 }

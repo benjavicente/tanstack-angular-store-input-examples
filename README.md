@@ -4,7 +4,7 @@ The issue that the Angular Store adapter can't be initialized with a value comin
 
 ```ts
 export function injectRelativeTimestamp(timestamp: Signal<number>) {
-  // Throws NG0950: no model/input available yet
+  // Throws NG0952/NG0950: no model/input available yet
   const relativeTimestamp = new RelativeTime(timestamp());
 }
 
@@ -85,7 +85,7 @@ const before = effect(() => {
 const relative = injectRelativeTimestamp(this.timestamp);
 ```
 
-The ideal solution should have everything setup in 2 initialization, and not in 3 effects.
+The ideal solution should have everything set up in step 2 (initialization), and not in step 3 (effects).
 
 ---
 
@@ -125,7 +125,7 @@ function injectLazyStore(storeSignal) {
 }
 ```
 
-And `createStableSignal` is just a helper to create a stable value that will be lazy evaluated.
+And `createStableSignal` is just a helper to create a stable value that will be lazily evaluated.
 
 ```ts
 export function createStableSignal<T>(fn: () => T): () => T {
@@ -137,7 +137,7 @@ export function createStableSignal<T>(fn: () => T): () => T {
 
 This is different from Vue, Solid and Svelte, where signals always have a value.
 
-But the idea is really similar to the one in React.
+But the idea is really similar to the solution in React.
 
 ```ts
 // Does the same as injectLazyStore
@@ -164,6 +164,8 @@ function useQuery() {
 }
 ```
 
+See [React Query](https://github.com/TanStack/query/blob/db663de69fad826dcc02ebc62e0eedd6c1136869/packages/react-query/src/useBaseQuery.ts#L91-L120). Hotkeys [creates the stable store with a ref and subscribes with useStore](https://github.com/TanStack/hotkeys/blob/75ce7c8cf7e2ef82b1d97cc5238d5c01882d0ec9/packages/react-hotkeys/src/useHotkeyRecorder.ts#L66-L85).
+
 While it isn't ideal to accept that the store can change,
 we can assume that consumers are smart enough to update the store value
 instead of re-creating the store per update/render.
@@ -180,10 +182,10 @@ export function injectLazyStore(storeOrStoreSignal, selector) {
       ? storeOrStoreSignal
       : () => storeOrStoreSignal;
 
-  const slice = linkedSignal(() => selector(storeSignal().get()), options);
+  const slice = linkedSignal(() => selector(storeSignal().get()));
 
   effect((onCleanup) => {
-    const { unsubscribe } = storeOrStoreSignal().subscribe((s) => {
+    const { unsubscribe } = storeSignal().subscribe((s) => {
       slice.set(selector(s));
     });
     onCleanup(() => unsubscribe());
@@ -192,6 +194,8 @@ export function injectLazyStore(storeOrStoreSignal, selector) {
   return slice.asReadonly();
 }
 ```
+
+See [injectStore2.ts for the full code](./src/app/lib/injectStore2.ts).
 
 We would need to check if moving the subscription to an effect would cause a timing issue. The other solution would be to split it in two:
 

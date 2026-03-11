@@ -32,8 +32,8 @@ export const links = [
         signals.
       </p>
       <p>
-        For the context of all examples, asume that creating a store is
-        expensive. For example, it might invoque a network request. In here we
+        For the context of all examples, assume that creating a store is
+        expensive. For example, it might invoke a network request. In here we
         are doing a simple timer.
       </p>
       <nav class="flex gap-2">

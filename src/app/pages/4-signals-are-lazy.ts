@@ -1,3 +1,4 @@
+import { JsonPipe } from "@angular/common";
 import {
   Component,
   Signal,
@@ -6,6 +7,7 @@ import {
   inject,
   effect,
   model,
+  OnInit,
 } from "@angular/core";
 import { TimeInputComponent } from "@app/components/time-input.component";
 import { createStableSignal, injectLazyStore } from "@app/lib/injectLazyStore";
@@ -32,7 +34,7 @@ export function injectRelativeTimestamp(timestamp: Signal<number>) {
 @Component({
   selector: "app-signals-are-lazy-child",
   standalone: true,
-  imports: [TimeInputComponent],
+  imports: [TimeInputComponent, JsonPipe],
   template: `
     <div class="flex flex-row gap-2 items-center">
       <app-time-input [(timestamp)]="timestamp" />
@@ -42,17 +44,29 @@ export function injectRelativeTimestamp(timestamp: Signal<number>) {
       <div>
         {{ relative() }}
       </div>
+      <div>ngOnInit relative: {{ relativeNgOnInit | json }}</div>
     </div>
   `,
 })
-export class SignalsAreLazyChildComponent {
+export class SignalsAreLazyChildComponent implements OnInit {
   public readonly timestamp = model.required<number>();
   protected readonly relative = injectRelativeTimestamp(this.timestamp);
 
   constructor() {
     // Can't read signals derived from required inputs/models before initialization
-    // so uncommenting this will throw the NG0950 error
+    // so uncommenting this will throw the NG0950/NG0952 error
     // this.relative();
+  }
+
+  protected relativeNgOnInit!: string;
+
+  ngOnInit() {
+    console.log("timestamp input on ngOnInit", this.timestamp());
+    console.log(
+      "relative, calculated from timestamp, on ngOnInit",
+      this.relative(),
+    );
+    this.relativeNgOnInit = this.relative();
   }
 }
 
@@ -66,9 +80,9 @@ export class SignalsAreLazyChildComponent {
     <p class="mt-4">
       Signals come to the rescue since they are lazy. We can defer store
       creation inside a signal; the first read happens in an effect or the
-      template, after the required input is set. Users see the same NG0950
-      error if they read that signal before initialization (e.g. in the
-      constructor), as with reading required inputs directly.
+      template, after the required input is set. Users see the same NG0950/NG0952 error
+      if they read that signal before initialization (e.g. in the constructor),
+      as with reading required inputs directly.
     </p>
   `,
 })
